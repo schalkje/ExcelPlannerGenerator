@@ -1,5 +1,4 @@
 # https://openpyxl.readthedocs.io/en/stable/
-from asyncio.windows_events import NULL
 from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils.cell import get_column_letter
