@@ -31,13 +31,20 @@ teamMembers = [
 wb = Workbook()
 
 # Styles
-thin = Side(border_style="thin", color="666666")
-thin_inactive = Side(border_style="thin", color="AAAAAA")
+# thin = Side(border_style="thin", color="666666")
+# thin_inactive = Side(border_style="thin", color="AAAAAA")
+thin = Side(border_style="medium", color="FFFFFF")
+thin_inactive = Side(border_style="medium", color="FFFFFF")
 double = Side(border_style="double", color="666666")
+side_team = Side(border_style="thick", color="FFFFFF")
+side_team_vertical = Side(border_style="medium", color="FFFFFF")
 
 fill_inactive = PatternFill("solid", fgColor="00EEEEEE")
 fill_active_header = PatternFill("solid", fgColor="00B7D2FF")
 fill_header_label = PatternFill("solid", fgColor="FFFFFF")
+fill_weekend = PatternFill("solid", fgColor="00FFFFFF")
+fill_workday_odd = PatternFill("solid", fgColor="00DCE6F1")
+fill_workday_even = PatternFill("solid", fgColor="00B8CCE4")
 
 font_inactive = Font(color="999999", bold=False)
 
@@ -66,6 +73,44 @@ style_weekday_inactive.name = "weekday_inactive"
 style_weekday_inactive.font = font_inactive
 style_weekday_inactive.fill = fill_inactive
 style_weekday_inactive.border = Border(top=thin_inactive, left=thin_inactive, right=thin_inactive, bottom=thin_inactive)
+
+style_weekend = NamedStyle(name="weekend")
+style_weekend.alignment = Alignment(horizontal="center", vertical="center")
+style_weekend.border = Border(bottom=side_team)
+style_weekend.font = font_inactive
+style_weekend.fill = fill_weekend
+
+style_weekend_inactive = copy(style_weekend)
+style_weekend_inactive.name = "weekend_inactive"
+style_weekend_inactive.font = font_inactive
+style_weekend_inactive.fill = fill_weekend
+
+
+style_workday_odd = NamedStyle(name="workday_odd")
+style_workday_odd.alignment = Alignment(horizontal="center", vertical="center")
+style_workday_odd.border = Border(bottom=side_team, left=side_team_vertical, right=side_team_vertical)
+style_workday_odd.fill = fill_workday_odd
+
+style_team_odd = copy(style_workday_odd)
+style_team_odd.name = "style_team_odd"
+style_team_odd.alignment = Alignment(horizontal="left", vertical="center")
+style_team_odd.font = Font(bold=True)
+
+style_workday_even = NamedStyle(name="workday_even")
+style_workday_even.alignment = Alignment(horizontal="center", vertical="center")
+style_workday_even.border = Border(bottom=side_team, left=side_team_vertical, right=side_team_vertical)
+style_workday_even.fill = fill_workday_even
+
+style_team_even = copy(style_workday_even)
+style_team_even.name = "style_team_even"
+style_team_even.alignment = Alignment(horizontal="left", vertical="center")
+style_team_even.font = Font(bold=True)
+
+style_workday_inactive = copy(style_day)
+style_workday_inactive.name = "workday_inactive"
+style_workday_inactive.font = font_inactive
+style_workday_inactive.fill = fill_inactive
+style_workday_inactive.border = Border(bottom=side_team, left=side_team_vertical, right=side_team_vertical)
 
 
 style_month = NamedStyle(name="month")
@@ -121,48 +166,48 @@ generatorVariables = [
 
 
 # grab the active worksheet and rename
-ws = wb.active
-ws.title = "Overview"
+ws_overview = wb.active
+ws_overview.title = "Overview"
 
-ws.append(['Variable', 'Value'])
-ws.column_dimensions['A'].width = 22
-ws.column_dimensions['B'].width = 30
+ws_overview.append(['Variable', 'Value'])
+ws_overview.column_dimensions['A'].width = 22
+ws_overview.column_dimensions['B'].width = 30
 
 for row in generatorVariables:
-    ws.append(row)
+    ws_overview.append(row)
 
 tab = Table(displayName="GeneratorVariables", ref="A1:B3")
-# Add a default style with striped rows and banded columns
+# Add a default style with striped rows_overview and banded columns
 style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
                        showLastColumn=False, showRowStripes=True, showColumnStripes=True)
 tab.tableStyleInfo = style
 
-ws.add_table(tab)
+ws_overview.add_table(tab)
 
 # empty line
-ws.append([''])
+ws_overview.append([''])
 
 startRowNumber = 5
-ws.append(teamMembersLabels)
-ws.column_dimensions['A'].width = 22
-ws.column_dimensions['B'].width = 30
-ws.column_dimensions['C'].width = 30
-ws.column_dimensions['D'].width = 10
-ws.column_dimensions['E'].width = 10
-ws.column_dimensions['F'].width = 10
-ws.column_dimensions['G'].width = 10
-ws.column_dimensions['H'].width = 10
+ws_overview.append(teamMembersLabels)
+ws_overview.column_dimensions['A'].width = 22
+ws_overview.column_dimensions['B'].width = 30
+ws_overview.column_dimensions['C'].width = 30
+ws_overview.column_dimensions['D'].width = 10
+ws_overview.column_dimensions['E'].width = 10
+ws_overview.column_dimensions['F'].width = 10
+ws_overview.column_dimensions['G'].width = 10
+ws_overview.column_dimensions['H'].width = 10
 
 for row in teamMembers:
-    ws.append(row)
+    ws_overview.append(row)
 
 tab = Table(displayName="TeamMembers", ref="A{0}:H{1}".format(startRowNumber,startRowNumber+len(teamMembers)))
-# Add a default style with striped rows and banded columns
+# Add a default style with striped rows_overview and banded columns
 style = TableStyleInfo(name="TableStyleMedium11", showFirstColumn=True,
                        showLastColumn=False, showRowStripes=True, showColumnStripes=False)
 tab.tableStyleInfo = style
 
-ws.add_table(tab)
+ws_overview.add_table(tab)
 
 
 
@@ -173,24 +218,19 @@ for monthNumber in range(0,numberOfMonths):
     # yearNumber = startDate.Add()
 
     ws = wb.create_sheet(date.strftime('%Y-%m'))
-    startRowNumber = 4
+    ws.showGridLines = False
+    ws.showRowColHeaders = False
+
+    startRowNumber = 5
     ws['A{0}'.format(startRowNumber)]='Team'
     ws['A{0}'.format(startRowNumber)].style = style_team_header
-    counter = 0
-    for row in teamMembers:
-        counter += 1
-        ws['A{0}'.format(startRowNumber+counter)]=row[0]
-        if (row[1] is None or row[1] <= date) and (row[2] is None or row[2] > date):
-            ws['A{0}'.format(startRowNumber+counter)].style = style_team
-        else:
-            ws['A{0}'.format(startRowNumber+counter)].style = style_team_inactive
         
     cal = calendar.Calendar(0)
     days = cal.itermonthdates(date.year, date.month)
     startHeaderDays = 2
     endHeaderDays = 1 + date.weekday()
     startTailDates = 2 + date.weekday()+calendar.monthrange(date.year,date.month)[1]
-    endTailDates = (int( (startTailDates - 1) / 7 ) + 1) * 7 + 1
+    endTailDates = (int( (startTailDates) / 7 ) + 1) * 7 + 1
     startColumn = 1
     dayCounter = startHeaderDays -1
     for day in days:
@@ -204,11 +244,17 @@ for monthNumber in range(0,numberOfMonths):
         if ( dayCounter> endHeaderDays and dayCounter < startTailDates  ):
             ws['{0}{1}'.format(col,3)].style = style_day
             ws['{0}{1}'.format(col,2)].style = style_month
-            ws['{0}{1}'.format(col,4)].style = style_weekday
+            if day.strftime('%w') == "0" or day.strftime('%w') == "6":
+                ws['{0}{1}'.format(col,4)].style = style_weekend
+            else:
+                ws['{0}{1}'.format(col,4)].style = style_weekday
         else:
             ws['{0}{1}'.format(col,3)].style = style_day_inactive
             ws['{0}{1}'.format(col,2)].style = style_month_inactive
-            ws['{0}{1}'.format(col,4)].style = style_weekday_inactive
+            if day.strftime('%w') == "0" or day.strftime('%w') == "6":
+                ws['{0}{1}'.format(col,4)].style = style_weekend_inactive
+            else:
+                ws['{0}{1}'.format(col,4)].style = style_weekday_inactive
 
         ws.column_dimensions[col].width = 5
 
@@ -220,20 +266,62 @@ for monthNumber in range(0,numberOfMonths):
     
     if (startTailDates < endTailDates):
         ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(startTailDates),2,get_column_letter(endTailDates),2))
-    
+
+    # Team member lines
+    counter = 0
+    for teamMember in teamMembers:
+        counter += 1
+        startColumn = 1
+
+        row = startRowNumber + counter
+        col = get_column_letter(startColumn)
+        
+        ws['{0}{1}'.format(col,row)]=teamMember[0]
+        if (teamMember[1] is None or teamMember[1] <= date) and (teamMember[2] is None or teamMember[2] > date):
+            if (counter % 2) == 0:
+                ws['{0}{1}'.format(col,row)].style = style_team_even
+            else:
+                ws['{0}{1}'.format(col,row)].style = style_team_odd
+        else:
+            ws['{0}{1}'.format(col,row)].style = style_team_inactive
+
+        
+        dayCounter = startHeaderDays -1
+        days = cal.itermonthdates(date.year, date.month)
+
+        for day in days:
+            startColumn += 1
+            dayCounter += 1
+
+            col = get_column_letter(startColumn)
+
+            if ( dayCounter > endHeaderDays and dayCounter < startTailDates  ):
+                # weekend days are non-working days and greyed out as such
+                if day.strftime('%w') == "0" or day.strftime('%w') == "6":
+                    ws['{0}{1}'.format(col,row)]=""
+                    ws['{0}{1}'.format(col,row)].style=style_weekend
+                else:
+                    if (counter % 2) == 0:
+                        ws['{0}{1}'.format(col,row)].style=style_workday_even
+                    else:
+                        ws['{0}{1}'.format(col,row)].style=style_workday_odd
+
+            else:
+                # inactive days are inactive and copy the value from the previous month 
+                
+
+                # inactive days are locked
+                if day.strftime('%w') == "0" or day.strftime('%w') == "6":
+                    ws['{0}{1}'.format(col,row)]="x"
+                    ws['{0}{1}'.format(col,row)].style=style_weekend_inactive
+                else:
+                    ws['{0}{1}'.format(col,row)].style=style_workday_inactive
 
 
-# # Data can be assigned directly to cells
-# ws['A1'] = 42
-
-# # Rows can also be appended
-# ws.append([1, 2, 3])
-
-# # Python types will automatically be converted
-# ws['A2'] = datetime.datetime.now()
 
 # Save the file
 filename = "output\plan.xlsx"
 wb.save(filename)
 
+# open the Excel file
 os.system("{}".format(filename))
