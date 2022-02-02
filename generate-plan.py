@@ -1,5 +1,7 @@
 import os
 # https://openpyxl.readthedocs.io/en/stable/
+import openpyxl
+# from pillow import Image
 from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils.cell import get_column_letter
@@ -592,6 +594,13 @@ for monthNumber in range(0,numberOfMonths):
     ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="V"'], stopIfTrue=True, fill=vacation_fill, font=vacation_font))
     ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="x"'], stopIfTrue=True, font=not_contributing_font))
     ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="o"'], stopIfTrue=True, fill=fill_not_working, font=not_working_font))
+
+    # add legenda image
+    img = openpyxl.drawing.image.Image('./images/AbsenceCodes.png')
+    #img.anchor(ws['{}{}'.format(get_column_letter(offset_cols+day_counter+3),3)])
+
+    img.anchor = '{}{}'.format(get_column_letter(offset_cols+day_counter+3),3)
+    ws.add_image(img)
 
     # protect the sheet against unwanted changes
     ws.protection.sheet = True
