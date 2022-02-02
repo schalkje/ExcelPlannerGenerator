@@ -82,7 +82,7 @@ sick_fill = PatternFill("solid", bgColor="00FFD5D5")
 vacation_font = Font(color="C4D79B", bold=False)
 vacation_fill = PatternFill("solid", bgColor="0076933C")
 not_contributing_font = Font(color="FFFFFF", bold=False)
-not_working_font = Font(color="F0F0F0", bold=False)
+not_working_font = Font(color="F9F9F9", bold=False)
 # style_sick_day = copy(style_day)
 # style_sick_day.name = "sick_day"
 # style_sick_day.font = Font(color="DA9694", bold=False)
@@ -305,6 +305,7 @@ sheet_title = ""
 previous_sheet_title = ""
 endMonthDays = 0
 previous_endMonthDays = 0
+days_in_current_month = 0
 
 for monthNumber in range(0,numberOfMonths):
     # mr = calendar.monthrange(2022,13)
@@ -313,6 +314,8 @@ for monthNumber in range(0,numberOfMonths):
 
     previous_sheet_title = sheet_title
     sheet_title = date.strftime('%Y-%m')
+    next_sheet_title = addMonths(date,1).strftime('%Y-%m')
+
     ws = wb.create_sheet(title=sheet_title)
     # props = ws.sheet_properties
     ws.sheet_view.showGridLines = False
@@ -330,20 +333,23 @@ for monthNumber in range(0,numberOfMonths):
 
     startHeaderDays = 1
     endHeaderDays = date.weekday()
+    endHeaderDays_next_month = addMonths(date,1).weekday()
     previous_endMonthDays = endMonthDays
-    endMonthDays = date.weekday()+calendar.monthrange(date.year,date.month)[1]
+    days_in_previous_month = days_in_current_month
+    days_in_current_month = calendar.monthrange(date.year,date.month)[1]
+    endMonthDays = date.weekday()+days_in_current_month
     endTailDates = (int( (endMonthDays) / 7 ) + 1) * 7 
     column_nr = offset_cols
-    dayCounter = 0
+    day_counter = 0
     for day in days:
         column_nr += 1
-        dayCounter += 1
+        day_counter += 1
         col = get_column_letter(column_nr)
         ws['{0}{1}'.format(col,2)]=day.strftime('%b') # Month as locale’s abbreviated name.  (https://strftime.org/)
         ws['{0}{1}'.format(col,4)]=day.strftime('%a') # Weekday as locale’s abbreviated name. (https://strftime.org/)
 
         ws['{0}{1}'.format(col,3)]=day.day
-        if ( dayCounter > endHeaderDays and dayCounter <= endMonthDays ):
+        if ( day_counter > endHeaderDays and day_counter <= endMonthDays ):
             ws['{0}{1}'.format(col,3)].style = style_day
             ws['{0}{1}'.format(col,2)].style = style_month
             if day.strftime('%w') == "0" or day.strftime('%w') == "6":
@@ -406,21 +412,21 @@ for monthNumber in range(0,numberOfMonths):
 
 
         column_nr = offset_cols
-        dayCounter = 0
+        day_counter = 0
 
         days = cal.itermonthdates(date.year, date.month)
 
         for day in days:
             column_nr += 1
-            dayCounter += 1
+            day_counter += 1
 
             col = get_column_letter(column_nr)
 
             if (teamMember[1] is None or teamMember[1] <= date) and (teamMember[2] is None or teamMember[2] > date):
-                if ( dayCounter > endHeaderDays and dayCounter <= endMonthDays  ):
+                if ( day_counter > endHeaderDays and day_counter <= endMonthDays  ):
                     # weekend days are non-working days and greyed out as such
                     if day.strftime('%w') == "0" or day.strftime('%w') == "6":
-                        ws['{0}{1}'.format(col,row)]="" 
+                        ws['{0}{1}'.format(col,row)]='="o"' 
                         ws['{0}{1}'.format(col,row)].style=style_weekend
                     else:
                         # check if sprint flip day - style_flip_day
@@ -440,42 +446,48 @@ for monthNumber in range(0,numberOfMonths):
 
                 else:
                     # inactive days are inactive and copy the value from the previous month 
-                    # TODO: lookup value from previous month
-                    
 
                     if (day in flip_days):
                         ws['{0}{1}'.format(col,row)].style=style_flip_day
                     else:
                         # inactive days are locked
                         if day.strftime('%w') == "0" or day.strftime('%w') == "6":
-                            ws['{0}{1}'.format(col,row)]=""
+                            ws['{0}{1}'.format(col,row)]='="o"'
                             ws['{0}{1}'.format(col,row)].style=style_weekend_inactive
                         else:
                             ws['{0}{1}'.format(col,row)].style=style_workday_inactive
                             if previous_endMonthDays == 0:
                                 ws['{0}{1}'.format(col,row)]=""
-                            else:
-                                # previous sheet
-                                # row stays the same
-                                # column needs to be computed
-                                # monday = 1
-                                
-                                parallel_col_nr = offset_cols + previous_endMonthDays - day.weekday()
-                                
-                                ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(previous_sheet_title,get_column_letter(parallel_col_nr),row)
-                            # ='2022-01'!AM6
-                            # if (teamMember[2 + int(day.strftime('%w'))]<0):
-                            #     ws['{0}{1}'.format(col,row)] = 'x'
+                            
+                        if previous_endMonthDays > 0 and day_counter < 10: # looking back
+                            parallel_col_nr = offset_cols + previous_endMonthDays - (days_in_previous_month - day.day)
+                            ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(previous_sheet_title,get_column_letter(parallel_col_nr),row)
+                        if day_counter > 10: # looking forward
+                            ws['{0}{1}'.format(col,row)].style=style_workday_inactive                      
+                            parallel_col_nr = offset_cols + endHeaderDays_next_month + day.day
+                            ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(next_sheet_title,get_column_letter(parallel_col_nr),row)
+
             else:
                 if (day in flip_days):
                     ws['{0}{1}'.format(col,row)].style=style_flip_day
                 else:
-                    ws['{0}{1}'.format(col,row)].style=style_team_workday_inactive
+                    if ( day_counter > endHeaderDays and day_counter <= endMonthDays  ):
+                        ws['{0}{1}'.format(col,row)]='="o"'
+                        ws['{0}{1}'.format(col,row)].style=style_team_workday_inactive
+                    else:
+                        if previous_endMonthDays > 0 and day_counter < 10: # looking back
+                            parallel_col_nr = offset_cols + previous_endMonthDays - (days_in_previous_month - day.day)
+                            ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(previous_sheet_title,get_column_letter(parallel_col_nr),row)
+                        if day_counter > 10: # looking forward
+                            ws['{0}{1}'.format(col,row)].style=style_workday_inactive                      
+                            parallel_col_nr = offset_cols + endHeaderDays_next_month + day.day
+                            ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(next_sheet_title,get_column_letter(parallel_col_nr),row)
+
 
 
     # summary footer
     column_nr = offset_cols
-    dayCounter = 0
+    day_counter = 0
 
     days = cal.itermonthdates(date.year, date.month)
 
@@ -485,7 +497,7 @@ for monthNumber in range(0,numberOfMonths):
 
     for day in days:
         column_nr += 1
-        dayCounter += 1
+        day_counter += 1
 
         col = get_column_letter(column_nr)
 
@@ -493,12 +505,27 @@ for monthNumber in range(0,numberOfMonths):
             ws['{0}{1}'.format(col,row)].style=style_weekend
         else:
             if (day in flip_days):
-                ws['{0}{1}'.format(col,row)] = "=SUM({}{}:{}{})".format(get_column_letter(col_sprint_start),row,get_column_letter(column_nr-1),row)
+                # TODO
+                formula_current_month = "SUM({}{}:{}{})".format(get_column_letter(col_sprint_start),row,get_column_letter(column_nr-1),row)
+                #=SUM(D16:K16)+SUM('2022-04'!AA16:AE16)
+                if day_counter < sprint_size and previous_endMonthDays > 0:
+                    if day.day < 10:
+                        parallel_start_col = offset_cols + previous_endMonthDays - (14 - day.day - 1)
+                        parallel_end_col = offset_cols + previous_endMonthDays - (day_counter - day.day) + 1
+                        formula_previous_month = "SUM('{0}'!{1}{2}:{3}{4})".format(previous_sheet_title,get_column_letter(parallel_start_col),row,get_column_letter(parallel_end_col-1),row)
+                    else: # sprint flip previous month
+                        parallel_start_col = offset_cols + previous_endMonthDays - (14 - day_counter) - 1
+                        parallel_end_col = offset_cols + previous_endMonthDays - (day_counter) + 1
+                        formula_previous_month = "SUM('{0}'!{1}{2}:{3}{4})".format(previous_sheet_title,get_column_letter(parallel_start_col),row,get_column_letter(parallel_end_col-1),row)
+
+                    ws['{0}{1}'.format(col,row)] = "={}+{}".format(formula_current_month,formula_previous_month)
+                else:
+                    ws['{0}{1}'.format(col,row)] = "={}".format(formula_current_month)
                 ws['{0}{1}'.format(col,row)].style=style_footer_sprint_total
                 ws.merge_cells('{0}{1}:{2}{3}'.format(col,row,col,row+2))
 
                 # sprint numbering resets at the start of the year
-                if ( dayCounter > endHeaderDays and dayCounter <= endMonthDays  ):
+                if ( day_counter > endHeaderDays and day_counter <= endMonthDays  ):
                     if sprint_already_incremented:
                         sprint_already_incremented = False
                     else:                    
@@ -533,17 +560,9 @@ for monthNumber in range(0,numberOfMonths):
                 col_sprint_start = column_nr+1
                 
             else:
-                # # sprint name
-                # ws['{0}{1}'.format(col,row+1)].style=style_footer_sprint
-                # ws['{0}{1}'.format(col,row+1)]="Sprint {}-{:02d}".format(day.year,sprint_nr)
-                # ws['{0}{1}'.format(col,row+2)].style=style_footer_line
-
                 # sum day availability
-                # ws['{0}{1}'.format(col,row)]="=SUM({}{}:{}{})".format(col,team_offset_rows,col,team_offset_rows+len(teamMembers))
                 ws['{0}{1}'.format(col,row)]='=COUNTIF({}{}:{}{},"")'.format(col,team_offset_rows,col,team_offset_rows+len(teamMembers))
-                # =COUNTIF(E7:E12;"")
-                # half days =COUNTIF(E8:E13;"h1")+COUNTIF(E8:E13;"h2")+COUNTIF(E8:E13;"H2")
-                if ( dayCounter > endHeaderDays and dayCounter <= endMonthDays  ):
+                if ( day_counter > endHeaderDays and day_counter <= endMonthDays  ):
                     ws['{0}{1}'.format(col,row)].style=style_footer_sum
                 else:
                     ws['{0}{1}'.format(col,row)].style=style_footer_sum_inactive
