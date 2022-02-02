@@ -2,6 +2,14 @@
 
 The goal is to generate an excel planning sheet that is meant for planning off-days in a scrum team.
 
+## Absence
+code|meaning
+---|---
+S|Sickness
+V|Vacation
+X|Working but not contributing to the team effort
+0|Not working
+
 ## parameters
 ### Team
 A list of teammembers and their working times in a week.

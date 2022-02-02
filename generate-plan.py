@@ -5,6 +5,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Alignment, NamedStyle
 from openpyxl.worksheet.properties import WorksheetProperties, PageSetupProperties
+from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, FormulaRule
 from copy import copy
 import datetime
 import calendar
@@ -13,13 +14,13 @@ import calendar
 # https://www.blog.pythonlibrary.org/2021/08/11/styling-excel-cells-with-openpyxl-and-python/#:~:text=Adding%20a%20Border%20OpenPyXL%20gives%20you%20the%20ability,each%20of%20the%20four%20sides%20of%20a%20cell.
 
 
-#variables
-startDate = datetime.date(2022, 2, 1)
-numberOfMonths = 12
-first_flip_day = datetime.date(2022, 2, 8)
+# input variables
+startDate = datetime.date(2022, 1, 1)
+numberOfMonths = 13
+first_flip_day = datetime.date(2022, 1, 11)
 sprint_size = 14 # (2 weeks)
-num_sprints = 20
-flip_days = [first_flip_day + datetime.timedelta(days=(x*sprint_size)) for x in range(num_sprints)]
+
+first_sprint_nr = 1
 teamMembersLabels = ['Name','Start','End','Monday','Tuesday','Wednessday','Thursday','Friday']
 teamMembers = [
                     ['David',datetime.date(2022, 1, 1),None,8,8,8,8,8],
@@ -29,8 +30,13 @@ teamMembers = [
                     ['Paul',datetime.date(2022, 1, 1),datetime.date(2022, 3, 31),8,0,0,8,0],
                     ['Timothy',datetime.date(2022, 3, 1),None,8,8,8,8,0],
                     ['Michel',datetime.date(2022, 1, 1),None,8,8,8,8,8],
-                    ['Jeroen',datetime.date(2022, 1, 1),None,8,8,0,8,8],
+                    ['Jeroen',datetime.date(2022, 1, 1),None,-8,-8,0,-8,-8],
                 ]
+
+# computed variables
+num_sprints = int((numberOfMonths*30)/sprint_size)+1
+flip_days = [first_flip_day + datetime.timedelta(days=(x*sprint_size)) for x in range(num_sprints)]
+sprint_year = first_flip_day.year
 
 # create a workbook
 wb = Workbook()
@@ -39,6 +45,9 @@ wb = Workbook()
 # thin = Side(border_style="thin", color="666666")
 # thin_inactive = Side(border_style="thin", color="AAAAAA")
 thin = Side(border_style="medium", color="FFFFFF")
+thick = Side(border_style="thick", color="FFFFFF")
+thin_flip = Side(border_style="medium", color="DFE18F")
+thin_alternate = Side(border_style="medium", color="808080")
 thin_inactive = Side(border_style="medium", color="FFFFFF")
 double = Side(border_style="double", color="666666")
 side_team = Side(border_style="thick", color="FFFFFF")
@@ -51,7 +60,9 @@ fill_header_label = PatternFill("solid", fgColor="FFFFFF")
 fill_weekend = PatternFill("solid", fgColor="00FFFFFF")
 fill_workday_odd = PatternFill("solid", fgColor="00DCE6F1")
 fill_workday_even = PatternFill("solid", fgColor="00B8CCE4")
-fill_footer = PatternFill("solid", fgColor="00DBF1DE")
+fill_footer = PatternFill("solid", fgColor="00DFE18F")
+fill_footer_inactive = PatternFill("solid", fgColor="00EEEEEE")
+fill_footer_alternate = PatternFill("solid", fgColor="00808080")
 fill_flip_day= PatternFill("solid", fgColor="00DFE18F")
 
 font_inactive = Font(color="999999", bold=False)
@@ -65,11 +76,24 @@ style_day.alignment = Alignment(horizontal="center", vertical="center")
 style_day.border = Border(top=thin, left=thin, right=thin, bottom=thin)
 
 
+sick_font = Font(color="DA9694", bold=False)
+sick_fill = PatternFill("solid", bgColor="00FFD5D5")
+vacation_font = Font(color="C4D79B", bold=False)
+vacation_fill = PatternFill("solid", bgColor="0076933C")
+not_working_font = Font(color="FFFFFF", bold=False)
+# style_sick_day = copy(style_day)
+# style_sick_day.name = "sick_day"
+# style_sick_day.font = Font(color="DA9694", bold=False)
+# style_sick_day.fill = PatternFill("solid", fgColor="00FFD5D5")
+
+
+
 style_flip_day = NamedStyle(name="flip_day")
 style_flip_day.font = Font(color="000000", bold=True)
 style_flip_day.fill = fill_flip_day
 style_flip_day.alignment = Alignment(horizontal="center", vertical="center")
 style_flip_day.border = Border(top=thin, left=thin, right=thin, bottom=thin)
+
 
 style_day_inactive = copy(style_day)
 style_day_inactive.name = "day_inactive"
@@ -90,7 +114,7 @@ style_weekday_inactive.border = Border(top=thin_inactive, left=thin_inactive, ri
 
 style_weekend = NamedStyle(name="weekend")
 style_weekend.alignment = Alignment(horizontal="center", vertical="center")
-style_weekend.border = Border(bottom=side_team)
+style_weekend.border = Border(bottom=thin)
 style_weekend.font = font_inactive
 style_weekend.fill = fill_weekend
 
@@ -99,6 +123,7 @@ style_weekend_inactive.name = "weekend_inactive"
 style_weekend_inactive.font = font_inactive
 style_weekend_inactive.fill = fill_weekend
 
+# rule = Rule()
 
 style_workday_odd = NamedStyle(name="workday_odd")
 style_workday_odd.alignment = Alignment(horizontal="center", vertical="center")
@@ -119,6 +144,12 @@ style_team_even = copy(style_workday_even)
 style_team_even.name = "style_team_even"
 style_team_even.alignment = Alignment(horizontal="left", vertical="center")
 style_team_even.font = Font(bold=True)
+
+style_not_working = NamedStyle(name="not_working")
+style_not_working.alignment = Alignment(horizontal="center", vertical="center")
+style_not_working.border = Border(bottom=thin)
+style_not_working.font = Font(color="F0F0F0", bold=False)
+style_not_working.fill = fill_weekend
 
 style_workday_inactive = copy(style_day)
 style_workday_inactive.name = "workday_inactive"
@@ -166,11 +197,34 @@ style_team_workday_inactive.alignment = Alignment(horizontal="center", vertical=
 style_team_workday_inactive.fill = fill_team_inactive
 
 
-style_day_sum = NamedStyle(name="style_day_sum")
-style_day_sum.font = Font(color="000000", bold=False)
-style_day_sum.border = Border(top=thin, left=thin, bottom=thin)
-style_day_sum.alignment = Alignment(horizontal="center", vertical="center")
-style_day_sum.fill = fill_footer
+style_footer_sum = NamedStyle(name="footer_sum")
+style_footer_sum.font = Font(color="808080", bold=False)
+style_footer_sum.border = Border(top=thin, left=thin, right=thin)
+style_footer_sum.alignment = Alignment(horizontal="center", vertical="center")
+style_footer_sum.fill = fill_footer
+
+style_footer_sum_inactive = copy(style_footer_sum)
+style_footer_sum_inactive.name="footer_sum_inactive"
+style_footer_sum_inactive.fill = fill_footer_inactive
+
+style_footer_sprint = NamedStyle(name="footer_sprint")
+style_footer_sprint.font = Font(color="808080", bold=False)
+style_footer_sprint.fill = fill_footer
+style_footer_sprint.alignment = Alignment(horizontal="center", vertical="center")
+style_footer_sprint.border = Border(left=thin, right=thin_flip)
+
+style_footer_line = NamedStyle(name="footer_line")
+style_footer_line.font = Font(color="000000", bold=True)
+style_footer_line.fill = fill_footer_alternate
+style_footer_line.alignment = Alignment(horizontal="right", vertical="center")
+style_footer_line.border = Border(left=thin)
+
+style_footer_sprint_total = NamedStyle(name="footer_sprint_total")
+style_footer_sprint_total.font = Font(color="FFFFFF", bold=True)
+style_footer_sprint_total.fill = fill_footer_alternate
+style_footer_sprint_total.alignment = Alignment(horizontal="center", vertical="center")
+style_footer_sprint_total.border = Border(right=thick) # , left=thin_alternate
+
 
 def addMonths(d, x):
     newday = d.day
@@ -360,12 +414,15 @@ for monthNumber in range(0,numberOfMonths):
                             ws['{0}{1}'.format(col,row)].style=style_flip_day
                         else:
                             if (teamMember[2 + int(day.strftime('%w'))]==0):
-                                ws['{0}{1}'.format(col,row)].style=style_weekend
+                                ws['{0}{1}'.format(col,row)].style=style_not_working
+                                ws['{0}{1}'.format(col,row)] = '=0'
                             else:
                                 if (counter % 2) == 0:
                                     ws['{0}{1}'.format(col,row)].style=style_workday_even
                                 else:
                                     ws['{0}{1}'.format(col,row)].style=style_workday_odd
+                                if (teamMember[2 + int(day.strftime('%w'))]<0):
+                                    ws['{0}{1}'.format(col,row)] = 'x'
 
                 else:
                     # inactive days are inactive and copy the value from the previous month 
@@ -373,10 +430,12 @@ for monthNumber in range(0,numberOfMonths):
 
                     # inactive days are locked
                     if day.strftime('%w') == "0" or day.strftime('%w') == "6":
-                        ws['{0}{1}'.format(col,row)]="x"
+                        ws['{0}{1}'.format(col,row)]=""
                         ws['{0}{1}'.format(col,row)].style=style_weekend_inactive
                     else:
                         ws['{0}{1}'.format(col,row)].style=style_workday_inactive
+                        if (teamMember[2 + int(day.strftime('%w'))]<0):
+                            ws['{0}{1}'.format(col,row)] = 'x'
             else:
                 if (day in flip_days):
                     ws['{0}{1}'.format(col,row)].style=style_flip_day
@@ -384,7 +443,7 @@ for monthNumber in range(0,numberOfMonths):
                     ws['{0}{1}'.format(col,row)].style=style_team_workday_inactive
 
 
-    # summary
+    # summary footer
     column_nr = offset_cols
     dayCounter = 0
 
@@ -392,6 +451,8 @@ for monthNumber in range(0,numberOfMonths):
 
     offset_footer = 3
     row = team_offset_rows + counter + offset_footer
+    col_sprint_start = offset_footer+1
+    sprint_nr = first_sprint_nr
 
     for day in days:
         column_nr += 1
@@ -403,15 +464,47 @@ for monthNumber in range(0,numberOfMonths):
             ws['{0}{1}'.format(col,row)].style=style_weekend
         else:
             if (day in flip_days):
-                ws['{0}{1}'.format(col,row)].style=style_flip_day
-            else:
-                if ( dayCounter > endHeaderDays and dayCounter <= endMonthDays  ):
-                    ws['{0}{1}'.format(col,row)]="=SUM({}{}:{}{})".format(col,team_offset_rows,col,team_offset_rows+len(teamMembers))
-                    ws['{0}{1}'.format(col,row)].style=style_day_sum
+                ws['{0}{1}'.format(col,row)] = "=SUM({}{}:{}{})".format(get_column_letter(col_sprint_start),row,get_column_letter(column_nr-1),row)
+                ws['{0}{1}'.format(col,row)].style=style_footer_sprint_total
+                ws.merge_cells('{0}{1}:{2}{3}'.format(col,row,col,row+2))
+
+                # merge sprint name
+                if col_sprint_start < column_nr-1: # skip merge when there is nothing to merge
+                    ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(col_sprint_start),row+1,get_column_letter(column_nr-1),row+1))
+                    ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(col_sprint_start),row+2,get_column_letter(column_nr-1),row+2))
+                col_sprint_start = column_nr+1
+                
+                if sprint_year != day.year:
+                    sprint_year = day.year
+                    sprint_nr = 1
                 else:
-                    ws['{0}{1}'.format(col,row)]=""
-                    ws['{0}{1}'.format(col,row)].style=style_weekend
-        
+                    sprint_nr += 1
+            else:
+                # sprint name
+                ws['{0}{1}'.format(col,row+1)].style=style_footer_sprint
+                ws['{0}{1}'.format(col,row+1)]="Sprint {}-{:02d}".format(day.year,sprint_nr)
+                ws['{0}{1}'.format(col,row+2)].style=style_footer_line
+
+                # sum day availability
+                # ws['{0}{1}'.format(col,row)]="=SUM({}{}:{}{})".format(col,team_offset_rows,col,team_offset_rows+len(teamMembers))
+                ws['{0}{1}'.format(col,row)]='=COUNTIF({}{}:{}{},"")'.format(col,team_offset_rows,col,team_offset_rows+len(teamMembers))
+                # =COUNTIF(E7:E12;"")
+                # half days =COUNTIF(E8:E13;"h1")+COUNTIF(E8:E13;"h2")+COUNTIF(E8:E13;"H2")
+                if ( dayCounter > endHeaderDays and dayCounter <= endMonthDays  ):
+                    ws['{0}{1}'.format(col,row)].style=style_footer_sum
+                else:
+                    ws['{0}{1}'.format(col,row)].style=style_footer_sum_inactive
+
+    if col_sprint_start < column_nr:
+        # merge sprint name
+        if col_sprint_start < column_nr-1: # skip merge when there is nothing to merge
+            ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(col_sprint_start),row+1,get_column_letter(column_nr),row+1))
+            ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(col_sprint_start),row+2,get_column_letter(column_nr),row+2))
+    ws.row_dimensions[row+2].height = 4
+
+    ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="S"'], stopIfTrue=True, fill=sick_fill, font=sick_font))
+    ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="V"'], stopIfTrue=True, fill=vacation_fill, font=vacation_font))
+    ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="x"'], stopIfTrue=True, font=not_working_font))
 
 
 
