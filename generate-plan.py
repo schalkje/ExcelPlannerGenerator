@@ -4,8 +4,10 @@ from openpyxl import Workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils.cell import get_column_letter
 from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Alignment, NamedStyle
+from openpyxl.styles.protection import Protection
 from openpyxl.worksheet.properties import WorksheetProperties, PageSetupProperties
 from openpyxl.formatting.rule import ColorScaleRule, CellIsRule, FormulaRule
+# from openpyxl.workbook.protection import WorkbookProtection
 from copy import copy
 import datetime
 import calendar
@@ -40,6 +42,8 @@ sprint_year = first_flip_day.year
 
 # create a workbook
 wb = Workbook()
+wb.security.workbookPassword = 'password' # a simple basic password to prevent unconscious changes
+wb.security.lockStructure = True
 
 # Styles
 # thin = Side(border_style="thin", color="666666")
@@ -314,9 +318,11 @@ for monthNumber in range(0,numberOfMonths):
     next_sheet_title = addMonths(date,1).strftime('%Y-%m')
 
     ws = wb.create_sheet(title=sheet_title)
+
+    
     # props = ws.sheet_properties
     ws.sheet_view.showGridLines = False
-    # ws.sheet_view.showRowColHeaders = False # TODO remove comment
+    ws.sheet_view.showRowColHeaders = False 
 
 
         
@@ -383,7 +389,7 @@ for monthNumber in range(0,numberOfMonths):
 
     # add empty columns
     for i in range(1,team_offset_cols):
-        ws.column_dimensions[get_column_letter(i)].width = 1
+        ws.column_dimensions[get_column_letter(i)].width = 4
     # add empty columns
     for i in range(team_offset_cols+1,offset_cols+1):
         ws.column_dimensions[get_column_letter(i)].width = 1
@@ -454,7 +460,7 @@ for monthNumber in range(0,numberOfMonths):
                         else:
                             ws['{0}{1}'.format(col,row)].style=style_workday_inactive
                             if previous_endMonthDays == 0:
-                                ws['{0}{1}'.format(col,row)]=""
+                                ws['{0}{1}'.format(col,row)]='="o"'
                             
                         if previous_endMonthDays > 0 and day_counter < 10: # looking back
                             parallel_col_nr = offset_cols + previous_endMonthDays - (days_in_previous_month - day.day)
@@ -468,6 +474,7 @@ for monthNumber in range(0,numberOfMonths):
                 if (day in flip_days):
                     ws['{0}{1}'.format(col,row)].style=style_flip_day
                 else:
+                    ws['{0}{1}'.format(col,row)]='="o"'
                     if ( day_counter > endHeaderDays and day_counter <= endMonthDays  ):
                         ws['{0}{1}'.format(col,row)]='="o"'
                         ws['{0}{1}'.format(col,row)].style=style_team_workday_inactive
@@ -502,9 +509,8 @@ for monthNumber in range(0,numberOfMonths):
             ws['{0}{1}'.format(col,row)].style=style_weekend
         else:
             if (day in flip_days):
-                # TODO
                 formula_current_month = "SUM({}{}:{}{})".format(get_column_letter(col_sprint_start),row,get_column_letter(column_nr-1),row)
-                #=SUM(D16:K16)+SUM('2022-04'!AA16:AE16)
+                
                 if day_counter < sprint_size and previous_endMonthDays > 0:
                     if day.day < 10:
                         parallel_start_col = offset_cols + previous_endMonthDays - (14 - day.day - 1)
@@ -558,7 +564,7 @@ for monthNumber in range(0,numberOfMonths):
                 
             else:
                 # sum day availability
-                ws['{0}{1}'.format(col,row)]='=COUNTIF({}{}:{}{},"")'.format(col,team_offset_rows,col,team_offset_rows+len(teamMembers))
+                ws['{0}{1}'.format(col,row)]='=COUNTIF({}{}:{}{},"")'.format(col,team_offset_rows+1,col,team_offset_rows+len(teamMembers))
                 if ( day_counter > endHeaderDays and day_counter <= endMonthDays  ):
                     ws['{0}{1}'.format(col,row)].style=style_footer_sum
                 else:
@@ -587,6 +593,12 @@ for monthNumber in range(0,numberOfMonths):
     ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="x"'], stopIfTrue=True, font=not_contributing_font))
     ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="o"'], stopIfTrue=True, fill=fill_not_working, font=not_working_font))
 
+    # protect the sheet against unwanted changes
+    ws.protection.sheet = True
+    ws.protection.enable()
+    for c in range( offset_cols+1,offset_cols+day_counter+1):
+        for r in range(team_offset_rows+1,team_offset_rows+len(teamMembers)+1):
+            ws['{0}{1}'.format(get_column_letter(c),r)].protection = Protection(locked=False)
 
 
 
