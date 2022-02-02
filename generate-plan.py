@@ -35,7 +35,7 @@ teamMembers = [
 
 # computed variables
 num_sprints = int((numberOfMonths*30)/sprint_size)+1
-flip_days = [first_flip_day + datetime.timedelta(days=(x*sprint_size)) for x in range(num_sprints)]
+flip_days = [first_flip_day + datetime.timedelta(days=(x*sprint_size)) for x in range(-1,num_sprints)]
 sprint_year = first_flip_day.year
 
 # create a workbook
@@ -300,26 +300,23 @@ ws_overview.add_table(tab)
 # creating the month sheets
 sprint_nr = first_sprint_nr -1 # start one lower, because the iteration starts with incrementing this counter
 sprint_already_incremented = False
-sprint_label = "Sprint {}-{:02d}".format('0000',0)
+sprint_label = "Previous sprint"
 sheet_title = ""
-previous_sheet_title = ""
 endMonthDays = 0
 previous_endMonthDays = 0
 days_in_current_month = 0
 
 for monthNumber in range(0,numberOfMonths):
-    # mr = calendar.monthrange(2022,13)
     date = addMonths(startDate,monthNumber)
-    # yearNumber = startDate.Add()
 
-    previous_sheet_title = sheet_title
+    previous_sheet_title = addMonths(date,-1).strftime('%Y-%m')
     sheet_title = date.strftime('%Y-%m')
     next_sheet_title = addMonths(date,1).strftime('%Y-%m')
 
     ws = wb.create_sheet(title=sheet_title)
     # props = ws.sheet_properties
     ws.sheet_view.showGridLines = False
-    # ws.sheet_view.showRowColHeaders = False
+    # ws.sheet_view.showRowColHeaders = False # TODO remove comment
 
 
         
@@ -550,7 +547,7 @@ for monthNumber in range(0,numberOfMonths):
                         if (column_nr - col_sprint_start) < 4:
                             ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)].alignment = Alignment(horizontal="left", vertical="center")
 
-                    ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)]=sprint_label
+                    ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)]=sprint_label #TODO  error !? 2022-11
                     ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+2)].style=style_footer_line
 
                 # merge sprint name
