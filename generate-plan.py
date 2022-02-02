@@ -252,6 +252,9 @@ def addMonths(d, x):
 generatorVariables = [
     ['startDate',startDate],
     ['numberOfMonths',numberOfMonths],
+    ['first_flip_day',first_flip_day],
+    ['sprint_size',sprint_size],
+    ['first_sprint_nr',first_sprint_nr],
 ]
 
 
@@ -261,6 +264,14 @@ ws_overview.title = "Overview"
 props = ws_overview.sheet_properties
 props.tabColor = "1072BA"
 
+ws_overview['A1'] = 'Excel planner'
+ws_overview['A1'].font = Font(color="333333", bold=True, size=16) 
+ws_overview['A2'] = 'https://github.com/schalkje/ExcelPlannerGenerator'
+ws_overview['A2'].hyperlink = 'https://github.com/schalkje/ExcelPlannerGenerator'
+ws_overview['A2'].font = Font(color="366092", bold=False, underline='single', size=9) 
+ws_overview.append([])
+
+startRowNumber = 3
 ws_overview.append(['Variable', 'Value'])
 ws_overview.column_dimensions['A'].width = 22
 ws_overview.column_dimensions['B'].width = 30
@@ -268,7 +279,8 @@ ws_overview.column_dimensions['B'].width = 30
 for row in generatorVariables:
     ws_overview.append(row)
 
-tab = Table(displayName="GeneratorVariables", ref="A1:B3")
+
+tab = Table(displayName="GeneratorVariables", ref='A{}:B{}'.format(startRowNumber+1,startRowNumber + len(generatorVariables)+1))
 # Add a default style with striped rows_overview and banded columns
 style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
                        showLastColumn=False, showRowStripes=True, showColumnStripes=True)
@@ -277,9 +289,9 @@ tab.tableStyleInfo = style
 ws_overview.add_table(tab)
 
 # empty line
-ws_overview.append([''])
+ws_overview.append([])
 
-startRowNumber = 5
+startRowNumber = startRowNumber+len(generatorVariables) + 3
 ws_overview.append(teamMembersLabels)
 ws_overview.column_dimensions['A'].width = 22
 ws_overview.column_dimensions['B'].width = 30
@@ -610,6 +622,10 @@ for monthNumber in range(0,numberOfMonths):
             ws['{0}{1}'.format(get_column_letter(c),r)].protection = Protection(locked=False)
 
 
+# move Overview page to the end
+order = list(range(1,len(wb._sheets)))
+order.append(0)
+wb._sheets =[wb._sheets[i] for i in order]
 
 # Save the file
 filename = "output\plan.xlsx"
