@@ -58,6 +58,7 @@ fill_team_inactive = PatternFill("solid", fgColor="00FFFFFF")
 fill_active_header = PatternFill("solid", fgColor="00B7D2FF")
 fill_header_label = PatternFill("solid", fgColor="FFFFFF")
 fill_weekend = PatternFill("solid", fgColor="00FFFFFF")
+fill_not_working = PatternFill("solid", bgColor="00FFFFFF")
 fill_workday_odd = PatternFill("solid", fgColor="00DCE6F1")
 fill_workday_even = PatternFill("solid", fgColor="00B8CCE4")
 fill_footer = PatternFill("solid", fgColor="00DFE18F")
@@ -80,7 +81,8 @@ sick_font = Font(color="DA9694", bold=False)
 sick_fill = PatternFill("solid", bgColor="00FFD5D5")
 vacation_font = Font(color="C4D79B", bold=False)
 vacation_fill = PatternFill("solid", bgColor="0076933C")
-not_working_font = Font(color="FFFFFF", bold=False)
+not_contributing_font = Font(color="FFFFFF", bold=False)
+not_working_font = Font(color="F0F0F0", bold=False)
 # style_sick_day = copy(style_day)
 # style_sick_day.name = "sick_day"
 # style_sick_day.font = Font(color="DA9694", bold=False)
@@ -148,7 +150,7 @@ style_team_even.font = Font(bold=True)
 style_not_working = NamedStyle(name="not_working")
 style_not_working.alignment = Alignment(horizontal="center", vertical="center")
 style_not_working.border = Border(bottom=thin)
-style_not_working.font = Font(color="F0F0F0", bold=False)
+style_not_working.font = not_working_font
 style_not_working.fill = fill_weekend
 
 style_workday_inactive = copy(style_day)
@@ -299,13 +301,19 @@ ws_overview.add_table(tab)
 sprint_nr = first_sprint_nr -1 # start one lower, because the iteration starts with incrementing this counter
 sprint_already_incremented = False
 sprint_label = "Sprint {}-{:02d}".format('0000',0)
+sheet_title = ""
+previous_sheet_title = ""
+endMonthDays = 0
+previous_endMonthDays = 0
 
 for monthNumber in range(0,numberOfMonths):
     # mr = calendar.monthrange(2022,13)
     date = addMonths(startDate,monthNumber)
     # yearNumber = startDate.Add()
 
-    ws = wb.create_sheet(title=date.strftime('%Y-%m'))
+    previous_sheet_title = sheet_title
+    sheet_title = date.strftime('%Y-%m')
+    ws = wb.create_sheet(title=sheet_title)
     # props = ws.sheet_properties
     ws.sheet_view.showGridLines = False
     # ws.sheet_view.showRowColHeaders = False
@@ -322,6 +330,7 @@ for monthNumber in range(0,numberOfMonths):
 
     startHeaderDays = 1
     endHeaderDays = date.weekday()
+    previous_endMonthDays = endMonthDays
     endMonthDays = date.weekday()+calendar.monthrange(date.year,date.month)[1]
     endTailDates = (int( (endMonthDays) / 7 ) + 1) * 7 
     column_nr = offset_cols
@@ -411,26 +420,27 @@ for monthNumber in range(0,numberOfMonths):
                 if ( dayCounter > endHeaderDays and dayCounter <= endMonthDays  ):
                     # weekend days are non-working days and greyed out as such
                     if day.strftime('%w') == "0" or day.strftime('%w') == "6":
-                        ws['{0}{1}'.format(col,row)]=""
+                        ws['{0}{1}'.format(col,row)]="" 
                         ws['{0}{1}'.format(col,row)].style=style_weekend
                     else:
                         # check if sprint flip day - style_flip_day
                         if (day in flip_days):
                             ws['{0}{1}'.format(col,row)].style=style_flip_day
                         else:
-                            if (teamMember[2 + int(day.strftime('%w'))]==0):
-                                ws['{0}{1}'.format(col,row)].style=style_not_working
-                                ws['{0}{1}'.format(col,row)] = '=0'
+                            if (counter % 2) == 0:
+                                ws['{0}{1}'.format(col,row)].style=style_workday_even
                             else:
-                                if (counter % 2) == 0:
-                                    ws['{0}{1}'.format(col,row)].style=style_workday_even
-                                else:
-                                    ws['{0}{1}'.format(col,row)].style=style_workday_odd
+                                ws['{0}{1}'.format(col,row)].style=style_workday_odd
+
+                            if (teamMember[2 + int(day.strftime('%w'))]==0):
+                                ws['{0}{1}'.format(col,row)] = '="o"'
+                            else:
                                 if (teamMember[2 + int(day.strftime('%w'))]<0):
                                     ws['{0}{1}'.format(col,row)] = 'x'
 
                 else:
                     # inactive days are inactive and copy the value from the previous month 
+                    # TODO: lookup value from previous month
                     
 
                     if (day in flip_days):
@@ -442,8 +452,20 @@ for monthNumber in range(0,numberOfMonths):
                             ws['{0}{1}'.format(col,row)].style=style_weekend_inactive
                         else:
                             ws['{0}{1}'.format(col,row)].style=style_workday_inactive
-                            if (teamMember[2 + int(day.strftime('%w'))]<0):
-                                ws['{0}{1}'.format(col,row)] = 'x'
+                            if previous_endMonthDays == 0:
+                                ws['{0}{1}'.format(col,row)]=""
+                            else:
+                                # previous sheet
+                                # row stays the same
+                                # column needs to be computed
+                                # monday = 1
+                                
+                                parallel_col_nr = offset_cols + previous_endMonthDays - day.weekday()
+                                
+                                ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(previous_sheet_title,get_column_letter(parallel_col_nr),row)
+                            # ='2022-01'!AM6
+                            # if (teamMember[2 + int(day.strftime('%w'))]<0):
+                            #     ws['{0}{1}'.format(col,row)] = 'x'
             else:
                 if (day in flip_days):
                     ws['{0}{1}'.format(col,row)].style=style_flip_day
@@ -546,7 +568,8 @@ for monthNumber in range(0,numberOfMonths):
 
     ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="S"'], stopIfTrue=True, fill=sick_fill, font=sick_font))
     ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="V"'], stopIfTrue=True, fill=vacation_fill, font=vacation_font))
-    ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="x"'], stopIfTrue=True, font=not_working_font))
+    ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="x"'], stopIfTrue=True, font=not_contributing_font))
+    ws.conditional_formatting.add('A1:BB50', CellIsRule(operator='equal', formula=['="o"'], stopIfTrue=True, fill=fill_not_working, font=not_working_font))
 
 
 

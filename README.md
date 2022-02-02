@@ -5,10 +5,10 @@ The goal is to generate an excel planning sheet that is meant for planning off-d
 ## Absence
 code|meaning
 ---|---
-S|Sickness
-V|Vacation
-X|Working but not contributing to the team effort
-0|Not working
+s|Sickness
+v|Vacation
+x|Working but not contributing to the team effort
+o|Not working
 
 ## parameters
 ### Team
