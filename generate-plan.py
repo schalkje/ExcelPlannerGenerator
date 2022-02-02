@@ -213,6 +213,7 @@ style_footer_sprint.fill = fill_footer
 style_footer_sprint.alignment = Alignment(horizontal="center", vertical="center")
 style_footer_sprint.border = Border(left=thin, right=thin_flip)
 
+
 style_footer_line = NamedStyle(name="footer_line")
 style_footer_line.font = Font(color="000000", bold=True)
 style_footer_line.fill = fill_footer_alternate
@@ -295,6 +296,10 @@ ws_overview.add_table(tab)
 
 
 # creating the month sheets
+sprint_nr = first_sprint_nr -1 # start one lower, because the iteration starts with incrementing this counter
+sprint_already_incremented = False
+sprint_label = "Sprint {}-{:02d}".format('0000',0)
+
 for monthNumber in range(0,numberOfMonths):
     # mr = calendar.monthrange(2022,13)
     date = addMonths(startDate,monthNumber)
@@ -428,14 +433,17 @@ for monthNumber in range(0,numberOfMonths):
                     # inactive days are inactive and copy the value from the previous month 
                     
 
-                    # inactive days are locked
-                    if day.strftime('%w') == "0" or day.strftime('%w') == "6":
-                        ws['{0}{1}'.format(col,row)]=""
-                        ws['{0}{1}'.format(col,row)].style=style_weekend_inactive
+                    if (day in flip_days):
+                        ws['{0}{1}'.format(col,row)].style=style_flip_day
                     else:
-                        ws['{0}{1}'.format(col,row)].style=style_workday_inactive
-                        if (teamMember[2 + int(day.strftime('%w'))]<0):
-                            ws['{0}{1}'.format(col,row)] = 'x'
+                        # inactive days are locked
+                        if day.strftime('%w') == "0" or day.strftime('%w') == "6":
+                            ws['{0}{1}'.format(col,row)]=""
+                            ws['{0}{1}'.format(col,row)].style=style_weekend_inactive
+                        else:
+                            ws['{0}{1}'.format(col,row)].style=style_workday_inactive
+                            if (teamMember[2 + int(day.strftime('%w'))]<0):
+                                ws['{0}{1}'.format(col,row)] = 'x'
             else:
                 if (day in flip_days):
                     ws['{0}{1}'.format(col,row)].style=style_flip_day
@@ -452,7 +460,6 @@ for monthNumber in range(0,numberOfMonths):
     offset_footer = 3
     row = team_offset_rows + counter + offset_footer
     col_sprint_start = offset_footer+1
-    sprint_nr = first_sprint_nr
 
     for day in days:
         column_nr += 1
@@ -468,22 +475,46 @@ for monthNumber in range(0,numberOfMonths):
                 ws['{0}{1}'.format(col,row)].style=style_footer_sprint_total
                 ws.merge_cells('{0}{1}:{2}{3}'.format(col,row,col,row+2))
 
+                # sprint numbering resets at the start of the year
+                if ( dayCounter > endHeaderDays and dayCounter <= endMonthDays  ):
+                    if sprint_already_incremented:
+                        sprint_already_incremented = False
+                    else:                    
+                        if sprint_year != day.year:
+                            sprint_year = day.year
+                            sprint_nr = 1
+                        else:
+                            sprint_nr += 1
+                    # sprint name
+                    sprint_label = "Sprint {}-{:02d}".format(day.year,sprint_nr)
+                    ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)].style=style_footer_sprint
+                    if (column_nr <= sprint_size) and (column_nr - col_sprint_start) < 4:
+                        ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)].alignment = Alignment(horizontal="right", vertical="center")
+                    ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)]=sprint_label
+                    ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+2)].style=style_footer_line
+                else:
+                    # previous sprint name in case a sprint flip in the header
+                    ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)].style=style_footer_sprint
+                    if (column_nr <= sprint_size) and (column_nr - col_sprint_start) < 4:
+                        ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)].alignment = Alignment(horizontal="right", vertical="center")
+                    else:
+                        if (column_nr - col_sprint_start) < 4:
+                            ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)].alignment = Alignment(horizontal="left", vertical="center")
+
+                    ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)]=sprint_label
+                    ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+2)].style=style_footer_line
+
                 # merge sprint name
                 if col_sprint_start < column_nr-1: # skip merge when there is nothing to merge
                     ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(col_sprint_start),row+1,get_column_letter(column_nr-1),row+1))
                     ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(col_sprint_start),row+2,get_column_letter(column_nr-1),row+2))
                 col_sprint_start = column_nr+1
                 
-                if sprint_year != day.year:
-                    sprint_year = day.year
-                    sprint_nr = 1
-                else:
-                    sprint_nr += 1
             else:
-                # sprint name
-                ws['{0}{1}'.format(col,row+1)].style=style_footer_sprint
-                ws['{0}{1}'.format(col,row+1)]="Sprint {}-{:02d}".format(day.year,sprint_nr)
-                ws['{0}{1}'.format(col,row+2)].style=style_footer_line
+                # # sprint name
+                # ws['{0}{1}'.format(col,row+1)].style=style_footer_sprint
+                # ws['{0}{1}'.format(col,row+1)]="Sprint {}-{:02d}".format(day.year,sprint_nr)
+                # ws['{0}{1}'.format(col,row+2)].style=style_footer_line
 
                 # sum day availability
                 # ws['{0}{1}'.format(col,row)]="=SUM({}{}:{}{})".format(col,team_offset_rows,col,team_offset_rows+len(teamMembers))
@@ -496,7 +527,18 @@ for monthNumber in range(0,numberOfMonths):
                     ws['{0}{1}'.format(col,row)].style=style_footer_sum_inactive
 
     if col_sprint_start < column_nr:
-        # merge sprint name
+        if sprint_year != (day+datetime.timedelta(days=sprint_size - (column_nr - col_sprint_start))).year:
+            sprint_year = (day+datetime.timedelta(days=sprint_size - (column_nr - col_sprint_start))).year
+            sprint_nr = 1
+        else:
+            sprint_nr += 1        # sprint name
+        sprint_already_incremented = True
+        ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)].style=style_footer_sprint
+        if (column_nr - col_sprint_start) < 4:
+            ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)].alignment = Alignment(horizontal="left", vertical="center")
+
+        ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+1)]="Sprint {}-{:02d}".format(day.year,sprint_nr)
+        ws['{0}{1}'.format(get_column_letter(col_sprint_start),row+2)].style=style_footer_line        # merge sprint name
         if col_sprint_start < column_nr-1: # skip merge when there is nothing to merge
             ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(col_sprint_start),row+1,get_column_letter(column_nr),row+1))
             ws.merge_cells('{0}{1}:{2}{3}'.format(get_column_letter(col_sprint_start),row+2,get_column_letter(column_nr),row+2))
