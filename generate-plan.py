@@ -617,7 +617,11 @@ for monthNumber in range(0,numberOfMonths):
     # protect the sheet against unwanted changes
     ws.protection.sheet = True
     ws.protection.enable()
-    for c in range( offset_cols+1,offset_cols+day_counter+1):
+    if previous_endMonthDays==0:
+        start_protection_col = offset_cols+1
+    else:
+        start_protection_col = offset_cols+endHeaderDays+1
+    for c in range( start_protection_col,offset_cols+endMonthDays+1):
         for r in range(team_offset_rows+1,team_offset_rows+len(teamMembers)+1):
             ws['{0}{1}'.format(get_column_letter(c),r)].protection = Protection(locked=False)
 
