@@ -462,7 +462,7 @@ for monthNumber in range(0,numberOfMonths):
                         if previous_endMonthDays > 0 and day_counter < 10: # looking back
                             parallel_col_nr = offset_cols + previous_endMonthDays - (days_in_previous_month - day.day)
                             ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(previous_sheet_title,get_column_letter(parallel_col_nr),row)
-                        if day_counter > 10: # looking forward
+                        if monthNumber < numberOfMonths-1 and day_counter > 10: # looking forward
                             ws['{0}{1}'.format(col,row)].style=style_workday_inactive                      
                             parallel_col_nr = offset_cols + endHeaderDays_next_month + day.day
                             ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(next_sheet_title,get_column_letter(parallel_col_nr),row)
@@ -478,7 +478,7 @@ for monthNumber in range(0,numberOfMonths):
                         if previous_endMonthDays > 0 and day_counter < 10: # looking back
                             parallel_col_nr = offset_cols + previous_endMonthDays - (days_in_previous_month - day.day)
                             ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(previous_sheet_title,get_column_letter(parallel_col_nr),row)
-                        if day_counter > 10: # looking forward
+                        if monthNumber < numberOfMonths-1 and day_counter > 10: # looking forward
                             ws['{0}{1}'.format(col,row)].style=style_workday_inactive                      
                             parallel_col_nr = offset_cols + endHeaderDays_next_month + day.day
                             ws['{0}{1}'.format(col,row)]="=IF('{0}'!{1}{2}=\"\",\"\",'{0}'!{1}{2})".format(next_sheet_title,get_column_letter(parallel_col_nr),row)
